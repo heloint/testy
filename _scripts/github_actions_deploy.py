@@ -74,6 +74,12 @@ def run_deployment(ssh_client: paramiko.SSHClient) -> None:
     res: SshCmdResult = SshUtils.execute_command_on_remote(
         ssh_client, "ls -lisah /var/www/web/phylomedb6-reconstruction"
     )
+    # 1. cd into /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster
+    # 2. git stash
+    # 3. ./start_containers.py remove --hard --remove-images
+    # 4. git pull main
+    # 5. Change credentials. (cp /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/.env.production.bsccgenomics04 /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/.env.production)
+    # 6. ./start_containers.py start
     print(res)
 
 
