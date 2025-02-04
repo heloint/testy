@@ -28,6 +28,7 @@ jobs:
               issue_number: pr_number,
             });
             const triggerComment = comments.some(comment => comment.body.toLowerCase().includes("deploy please"));
+            echo comments;
             return triggerComment;
 
       - name: Deploy the application
