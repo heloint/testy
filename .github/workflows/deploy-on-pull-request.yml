@@ -54,8 +54,9 @@ jobs:
 
       - name: Execute deployment script
         if: steps.fetch-comments.outputs.result == 'true'
-        run: python _scripts/github_actions_deploy.py \
-              --server_address ${{ secrets.BSCCGENOMICS04_ADDRESS }} \
-              --username ${{ secrets.BSCCGENOMICS04_USER }} \
-              --ssh_key_file ssh_key
+        run: |
+            python _scripts/github_actions_deploy.py \
+            --server_address ${{ secrets.BSCCGENOMICS04_ADDRESS }} \
+            --username ${{ secrets.BSCCGENOMICS04_USER }} \
+            --ssh_key_file ssh_key
 
