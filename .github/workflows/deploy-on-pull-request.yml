@@ -13,6 +13,16 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: "3.12"
+
+      - name: Install dependencies from PYPI
+        run: |
+            python -m pip install --upgrade pip
+            pip install paramiko
+
       - name: Fetch PR comments
         id: fetch-comments
         uses: actions/github-script@v7
@@ -37,8 +47,15 @@ jobs:
             console.log(`Trigger comment found: ${triggerComment}`);
             return triggerComment;
 
-      - name: Deploy the application
-        if: steps.fetch-comments.outputs.result == 'true'
+      - name: Create SSH key file
         run: |
-          echo "🚀 Deploying application..."
-          # Place your actual deploy script here
+            echo "${{ secrets.BSCCGENOMICS04_KEY }}" > ssh_key
+            chmod 600 ssh_key
+
+      - name: Execute deployment script
+        if: steps.fetch-comments.outputs.result == 'true'
+        run: python _scripts/github_actions_deploy.py \
+              --server_address ${{ secrets.BSCCGENOMICS04_ADDRESS }} \
+              --username ${{ secrets.BSCCGENOMICS04_USER }} \
+              --ssh_key_file ssh_key
+
