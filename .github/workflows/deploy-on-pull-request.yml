@@ -40,8 +40,8 @@ jobs:
 
             // Check if "deploy please" exists and if the author is "heloint"
             const triggerComment = comments.some(comment =>
-              comment.body.toLowerCase().includes("deploy please") &&
-              comment.user.login === "heloint"
+              (comment.body.toLowerCase() === "deploy please") &&
+              comment.user.login === "${{ secrets.PERMITTED_USER }}"
             );
 
             console.log(`Trigger comment found: ${triggerComment}`);
