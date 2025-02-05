@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
+import os
 import re
+import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
@@ -85,15 +86,17 @@ class GithubActionsDeployArgs:
 
 
 def run_background_deployment(ssh_client: paramiko.SSHClient, app_dir: str) -> None:
-    log_file_name: str = re.sub(r"[:.\- ]", "_", str(datetime.now()))
+    logs_dir: str = f"{app_dir.rstrip("/")}/github_actions_startup_logs"
+    _ = SshUtils.execute_command_on_remote(ssh_client, f'mkdir -p {logs_dir}')
+    log_file_name: str = f'{re.sub(r"[:.\- ]", "_", str(datetime.now()))}.log'
+    log_file_path: str = os.path.join(logs_dir, log_file_name)
     cmd: str = f"""\
-        mkdir -p {app_dir.rstrip("/")}/github_actions_startup_logs \
-        && nohup bash -c 'cd {app_dir} \
+        nohup bash -c 'cd {app_dir} \
             && git stash \
             && ./start_containers.py remove --hard --remove-images \
             && git pull origin main \
             && cp {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production.bsccgenomics04 {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production \
-            && python3 ./start_containers.py start' > {app_dir.rstrip("/")}/github_actions_startup_logs/{log_file_name}.log 2>&1 &
+            && python3 ./start_containers.py start' > {log_file_path} 2>&1 &
 """
     res: SshCmdResult = SshUtils.execute_command_on_remote(ssh_client, cmd)
     pprint(res)
