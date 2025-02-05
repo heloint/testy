@@ -5,6 +5,7 @@ import paramiko
 import argparse
 from typing import TypedDict
 from dataclasses import dataclass
+from pprint import pprint
 
 class SshCmdResult(TypedDict):
     resultcode: int
@@ -70,25 +71,19 @@ class GithubActionsDeployArgs:
         )
         return GithubActionsDeployArgs(**vars(parser.parse_args()))
 
-def run_deployment(ssh_client: paramiko.SSHClient) -> None:
-    # 1. cd into /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster
-    # 2. git stash
-    # 3. ./start_containers.py remove --hard --remove-images
-    # 4. git pull main
-    # 5. Change credentials. (cp /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production.bsccgenomics04 /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production)
-    # 6. ./start_containers.py start
+def run_background_deployment(ssh_client: paramiko.SSHClient) -> None:
     cmd: str = """\
-        cd /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster \
+        nohup bash -c 'cd /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster \
             && git stash \
             && ./start_containers.py remove --hard --remove-images \
             && git pull origin main \
             && cp /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production.bsccgenomics04 /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production \
-            && python3 ./start_containers.py start
+            && python3 ./start_containers.py start' > startup.log 2>&1 &
 """
     res: SshCmdResult = SshUtils.execute_command_on_remote(
         ssh_client, cmd
     )
-    print(res)
+    pprint(res)
 
 
 def main() -> int:
@@ -98,7 +93,7 @@ def main() -> int:
         username=args.username,
         ssh_key_file=args.ssh_key_file,
     )
-    run_deployment(ssh_client)
+    run_background_deployment(ssh_client)
     ssh_client.close()
     return 0
 
