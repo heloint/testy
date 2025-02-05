@@ -87,12 +87,12 @@ class GithubActionsDeployArgs:
 def run_background_deployment(ssh_client: paramiko.SSHClient, app_dir: str) -> None:
     log_file_name: str = re.sub(r"[:.\- ]", "_", str(datetime.now()))
     cmd: str = f"""\
-        nohup bash -c 'cd {app_dir} \
+        mkdir -p {app_dir.rstrip("/")}/github_actions_startup_logs \
+        && nohup bash -c 'cd {app_dir} \
             && git stash \
             && ./start_containers.py remove --hard --remove-images \
             && git pull origin main \
             && cp {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production.bsccgenomics04 {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production \
-            && mkdir -p {app_dir.rstrip("/")}/github_actions_startup_logs \
             && python3 ./start_containers.py start' > {app_dir.rstrip("/")}/github_actions_startup_logs/{log_file_name}.log 2>&1 &
 """
     res: SshCmdResult = SshUtils.execute_command_on_remote(ssh_client, cmd)
