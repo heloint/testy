@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import paramiko
 import argparse
-from typing import TypedDict
+import re
 from dataclasses import dataclass
+from datetime import datetime
 from pprint import pprint
+from typing import TypedDict
+
+import paramiko
+
 
 class SshCmdResult(TypedDict):
     resultcode: int
     stdout: str
     stderr: str
+
 
 class SshUtils:
     @classmethod
@@ -42,9 +47,10 @@ class GithubActionsDeployArgs:
     server_address: str
     username: str
     ssh_key_file: str
+    application_directory: str
 
     @classmethod
-    def get_arguments(cls) ->  GithubActionsDeployArgs:
+    def get_arguments(cls) -> GithubActionsDeployArgs:
         parser = argparse.ArgumentParser(
             formatter_class=argparse.RawTextHelpFormatter,
             description="""
@@ -69,20 +75,27 @@ class GithubActionsDeployArgs:
             type=str,
             required=True,
         )
+        parser.add_argument(
+            "--application_directory",
+            help="Path to the root directory of the application. (This is where the starter script should be, 'start_containers.py')",
+            type=str,
+            required=True,
+        )
         return GithubActionsDeployArgs(**vars(parser.parse_args()))
 
-def run_background_deployment(ssh_client: paramiko.SSHClient) -> None:
-    cmd: str = """\
-        nohup bash -c 'cd /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster \
+
+def run_background_deployment(ssh_client: paramiko.SSHClient, app_dir: str) -> None:
+    log_file_name: str = re.sub(r"[:.\- ]", "_", str(datetime.now()))
+    cmd: str = f"""\
+        nohup bash -c 'cd {app_dir} \
             && git stash \
             && ./start_containers.py remove --hard --remove-images \
             && git pull origin main \
-            && cp /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production.bsccgenomics04 /var/www/web/phylomedb6-reconstruction/phylomedb6-app-cluster/phylomedb6-webapp/.env.production \
-            && python3 ./start_containers.py start' > startup.log 2>&1 &
+            && cp {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production.bsccgenomics04 {app_dir.rstrip("/")}/phylomedb6-webapp/.env.production \
+            && mkdir -p {app_dir.rstrip("/")}/github_actions_startup_logs \
+            && python3 ./start_containers.py start' > {app_dir.rstrip("/")}/github_actions_startup_logs/{log_file_name}.log 2>&1 &
 """
-    res: SshCmdResult = SshUtils.execute_command_on_remote(
-        ssh_client, cmd
-    )
+    res: SshCmdResult = SshUtils.execute_command_on_remote(ssh_client, cmd)
     pprint(res)
 
 
@@ -93,7 +106,7 @@ def main() -> int:
         username=args.username,
         ssh_key_file=args.ssh_key_file,
     )
-    run_background_deployment(ssh_client)
+    run_background_deployment(ssh_client, args.application_directory)
     ssh_client.close()
     return 0
 

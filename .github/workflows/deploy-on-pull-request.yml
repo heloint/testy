@@ -40,7 +40,7 @@ jobs:
 
             // Check if "deploy please" exists and if the author is "heloint"
             const triggerComment = comments.some(comment =>
-              (comment.body.toLowerCase() === "deploy please") &&
+              (comment.body.toLowerCase() === "redeploy please") &&
               comment.user.login === "${{ secrets.PERMITTED_USER }}"
             );
 
@@ -58,5 +58,6 @@ jobs:
             python _scripts/github_actions_deploy.py \
             --server_address ${{ secrets.BSCCGENOMICS04_ADDRESS }} \
             --username ${{ secrets.BSCCGENOMICS04_USER }} \
-            --ssh_key_file ssh_key
+            --ssh_key_file ssh_key \
+            --application_directory ${{ secrets.APPLICATION_DIRECTORY }}
 
